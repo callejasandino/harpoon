@@ -54,13 +54,13 @@ class CheckWebsiteSecurity extends Command
             try {
                 $response = $this->client->get($httpsUrl);
                 return [
-                    "HTTPS is available, but not used by default.",
-                    "Improvement: Redirect HTTP traffic to HTTPS by setting up a 301 redirect in your server configuration."
+                    'description' => "HTTPS is available, but not used by default.",
+                    'improvement' => "Improvement: Redirect HTTP traffic to HTTPS by setting up a 301 redirect in your server configuration."
                 ];
             } catch (\Exception $e) {
                 return [
-                    "HTTPS is not available.",
-                    "Improvement: Purchase and install an SSL certificate for your website to enable HTTPS."
+                    'description' => "HTTPS is not available.",
+                    'improvement' => "Improvement: Purchase and install an SSL certificate for your website to enable HTTPS."
                 ];
             }
         }
@@ -77,8 +77,8 @@ class CheckWebsiteSecurity extends Command
                 return "HSTS is enabled: $hsts";
             } else {
                 return [
-                    "HSTS is not enabled.",
-                    "Improvement: Enable HSTS by adding the `Strict-Transport-Security` header in your server configuration."
+                    'description' => "HSTS is not enabled.",
+                    'improvement' => "Improvement: Enable HSTS by adding the `Strict-Transport-Security` header in your server configuration."
                 ];
             }
         } catch (\Exception $e) {
@@ -133,8 +133,8 @@ class CheckWebsiteSecurity extends Command
             fclose($result);
 
             return [
-                "SSL/TLS" => "Enabled",
-                "Details" => sprintf(
+                "ssl_tls" => "Enabled",
+                "description" => sprintf(
                     "Issued to: %s, Issued by: %s, Valid from: %s, Valid until: %s. Cipher: %s",
                     $issuedTo,
                     json_encode($issuedBy),
@@ -142,7 +142,7 @@ class CheckWebsiteSecurity extends Command
                     $validTo->format('Y-m-d H:i:s T'),
                     $cipherSuite
                 ),
-                "Improvement: Renew SSL certificates before expiry, and ensure the server supports modern, secure cipher suites."
+                'improvement' => "Improvement: Renew SSL certificates before expiry, and ensure the server supports modern, secure cipher suites."
             ];
         } catch (\Exception $e) {
             return ["SSL" => "Check failed: " . $e->getMessage()];
@@ -170,8 +170,8 @@ class CheckWebsiteSecurity extends Command
             }
 
             return [
-                "No visible CSRF protection found.",
-                "Improvement: Consider adding CSRF tokens to all forms. Use `@csrf` in Laravel Blade forms or include `<input type=\"hidden\" name=\"_token\" value=\"{{ csrf_token() }}\">` manually."
+                'description' => "No visible CSRF protection found.",
+                'improvement' => "Improvement: Consider adding CSRF tokens to all forms. Use `@csrf` in Laravel Blade forms or include `<input type=\"hidden\" name=\"_token\" value=\"{{ csrf_token() }}\">` manually."
             ];
         } catch (\Exception $e) {
             return "Error checking CSRF: " . $e->getMessage();
@@ -193,8 +193,8 @@ class CheckWebsiteSecurity extends Command
                 return "CORS is enabled: " . implode(', ', $headers['Access-Control-Allow-Origin']);
             }
             return [
-                "No CORS headers found in OPTIONS response.",
-                "Improvement: Add CORS headers (`Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`) in your server configuration to control cross-origin requests."
+                'description' => "No CORS headers found in OPTIONS response.",
+                'improvement' => "Improvement: Add CORS headers (`Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`) in your server configuration to control cross-origin requests."
             ];
         } catch (\Exception $e) {
             return "Error checking CORS: " . $e->getMessage();
@@ -229,8 +229,8 @@ class CheckWebsiteSecurity extends Command
             });
 
             return $validations ?: [
-                "No client-side validations found.",
-                "Improvement: Add proper validation attributes like `required`, `pattern`, `minlength`, and `maxlength` for better form validation."
+                'description' => "No client-side validations found.",
+                'improvement' => "Improvement: Add proper validation attributes like `required`, `pattern`, `minlength`, and `maxlength` for better form validation."
             ];
         } catch (\Exception $e) {
             return ["Error checking form validation: " . $e->getMessage()];
@@ -282,7 +282,7 @@ class CheckWebsiteSecurity extends Command
             return [
                 'X-XSS-Protection' => $xssProtection,
                 'Content-Security-Policy' => $contentSecurityPolicy,
-                'Improvement' => "Enable XSS protection headers (`X-XSS-Protection`) and set up a strong Content-Security-Policy to prevent XSS attacks."
+                'improvement' => "Enable XSS protection headers (`X-XSS-Protection`) and set up a strong Content-Security-Policy to prevent XSS attacks."
             ];
         } catch (\Exception $e) {
             return ["Error checking XSS protection: " . $e->getMessage()];
