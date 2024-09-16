@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Symfony\Component\DomCrawler\Crawler;
+use Illuminate\Support\Facades\Log;
 
 class HomeController extends Controller
 {
@@ -42,20 +43,17 @@ class HomeController extends Controller
                 'xss' => $this->checkXSSProtection($url),
                 'ssl' => $this->checkSSL($url)
             ]
-
         ];
-
 
         return view('result', compact('improvements'));
     }
 
-    private function checkHTTPS(string $url)
+    private function checkHTTPS(string $url): array
     {
         $parsedUrl = parse_url($url);
 
         if (isset($parsedUrl['scheme']) && $parsedUrl['scheme'] === 'https') {
-            return
-            [
+            return [
                 'description' => "HTTPS is enabled.",
                 'improvement' => "None."
             ];
@@ -70,6 +68,7 @@ class HomeController extends Controller
                 'improvement' => "Redirect HTTP traffic to HTTPS by setting up a 301 redirect in your server configuration."
             ];
         } catch (\Exception $e) {
+            Log::error("HTTPS check failed: " . $e->getMessage());
             return [
                 'description' => "HTTPS is not available.",
                 'improvement' => "Install an SSL certificate to enable HTTPS."
@@ -77,12 +76,12 @@ class HomeController extends Controller
         }
     }
 
-    private function checkHSTS(string $url)
+    private function checkHSTS(string $url): array
     {
         return $this->fetchHeader($url, 'Strict-Transport-Security', "HSTS", "Enable HSTS by adding the `Strict-Transport-Security` header.");
     }
 
-    private function checkSSL(string $url)
+    private function checkSSL(string $url): array
     {
         $parsedUrl = parse_url($url);
         $host = $parsedUrl['host'];
@@ -100,7 +99,7 @@ class HomeController extends Controller
             $result = stream_socket_client("ssl://{$host}:{$port}", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
 
             if ($result === false) {
-                return ["message" => "Connection failed: $errstr ($errno)" , 'improvement' => 'None'];
+                return ["description" => "Connection failed: $errstr ($errno)", 'improvement' => 'None'];
             }
 
             $params = stream_context_get_params($result);
@@ -122,11 +121,12 @@ class HomeController extends Controller
                 'improvement' => "Ensure SSL certificates are renewed before expiry."
             ];
         } catch (\Exception $e) {
+            Log::error("SSL check failed: " . $e->getMessage());
             return ["description" => "Check failed: " . $e->getMessage(), 'improvement' => 'None'];
         }
     }
 
-    private function checkCSRF(string $url)
+    private function checkCSRF(string $url): array
     {
         try {
             $response = $this->client->get($url);
@@ -145,16 +145,17 @@ class HomeController extends Controller
                 'improvement' => "Consider adding CSRF tokens to forms."
             ];
         } catch (\Exception $e) {
+            Log::error("CSRF check failed: " . $e->getMessage());
             return ['description' => "Error checking CSRF: " . $e->getMessage(), 'improvement' => 'None'];
         }
     }
 
-    private function checkCORS(string $url)
+    private function checkCORS(string $url): array
     {
         return $this->fetchHeader($url, 'Access-Control-Allow-Origin', "CORS", "Add CORS headers to control cross-origin requests.");
     }
 
-    private function checkFormValidation(string $url)
+    private function checkFormValidation(string $url): array
     {
         try {
             $response = $this->client->get($url);
@@ -180,11 +181,12 @@ class HomeController extends Controller
                 }
             });
 
-            return $validations ?: [
+            return $validations ? ['description' => implode(' ', $validations), 'improvement' => 'None'] : [
                 'description' => "No client-side validations found.",
                 'improvement' => "Add validation attributes like `required`, `pattern`, `minlength`, and `maxlength` for better form validation."
             ];
         } catch (\Exception $e) {
+            Log::error("Form validation check failed: " . $e->getMessage());
             return [
                 'description' => "Error checking form validation: " . $e->getMessage(),
                 'improvement' => 'None'
@@ -192,7 +194,7 @@ class HomeController extends Controller
         }
     }
 
-    private function checkSecurityHeaders(string $url)
+    private function checkSecurityHeaders(string $url): array
     {
         return $this->fetchMultipleHeaders($url, [
             'Content-Security-Policy',
@@ -205,12 +207,12 @@ class HomeController extends Controller
         ], "Set the following headers to improve security.");
     }
 
-    private function checkXSSProtection(string $url)
+    private function checkXSSProtection(string $url): array
     {
         return $this->fetchMultipleHeaders($url, ['X-XSS-Protection', 'Content-Security-Policy'], "Enable XSS protection and set up a strong Content-Security-Policy.");
     }
 
-    private function fetchHeader(string $url, string $header, string $feature, string $improvement)
+    private function fetchHeader(string $url, string $header, string $feature, string $improvement): array
     {
         try {
             $response = $this->client->get($url);
@@ -228,6 +230,7 @@ class HomeController extends Controller
                 'improvement' => $improvement
             ];
         } catch (\Exception $e) {
+            Log::error("Header fetch failed for $feature: " . $e->getMessage());
             return [
                 'description' => "Error checking $feature: " . $e->getMessage(),
                 'improvement' => 'None'
@@ -235,7 +238,7 @@ class HomeController extends Controller
         }
     }
 
-    private function fetchMultipleHeaders(string $url, array $headers, string $improvement)
+    private function fetchMultipleHeaders(string $url, array $headers, string $improvement): array
     {
         try {
             $response = $this->client->get($url);
@@ -246,6 +249,7 @@ class HomeController extends Controller
             $results['Improvement'] = $improvement;
             return $results;
         } catch (\Exception $e) {
+            Log::error("Multiple headers fetch failed: " . $e->getMessage());
             return [
                 'description' => "Error checking headers: " . $e->getMessage(),
                 'improvement' => 'None'
